@@ -8,7 +8,6 @@ export const saveToken = async (token) => {
   try {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     console.log("Token guardado correctamente ");
-    console.log(token);
   } catch (error) {
     console.error("Error al guardar el token:", error);
   }

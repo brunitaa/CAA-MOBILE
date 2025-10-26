@@ -14,30 +14,17 @@ import { CaregiverContext } from "../../context/caregiverContext";
 
 export default function LoginCaregiverScreen() {
   const router = useRouter();
-  const {
-    login,
-    loading: contextLoading,
-    ensureTokenValid,
-    user,
-  } = useContext(CaregiverContext);
+  const { login, loading: contextLoading, user } = useContext(CaregiverContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirige si ya hay un usuario válido
-  useEffect(() => {
-    const checkToken = async () => {
-      await ensureTokenValid();
-    };
-    checkToken();
-  }, []);
-
-  // Cuando el usuario cambia en el contexto, redirige automáticamente
+  // Si el usuario ya está logueado, redirigir automáticamente
   useEffect(() => {
     if (user) {
-      router.replace("/speaker-selection");
+      router.replace("/caregiver/speaker-selection");
     }
   }, [user]);
 
@@ -49,14 +36,22 @@ export default function LoginCaregiverScreen() {
     }
 
     setLoading(true);
-    const res = await login(email, password);
-    setLoading(false);
+    try {
+      const res = await login(email, password);
 
-    if (!res.success) {
-      setError(res.message);
-      return;
+      if (!res.success) {
+        setError(res.message);
+        return;
+      }
+
+      // Navegación inmediata tras login exitoso
+      router.replace("/caregiver/speaker-selection");
+    } catch (err) {
+      setError("Error al iniciar sesión. Intenta nuevamente.");
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
-    // El efecto de useEffect([user]) se encargará de redirigir
   };
 
   if (contextLoading || loading) {

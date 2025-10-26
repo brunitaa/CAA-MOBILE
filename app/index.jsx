@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
 
       <TouchableOpacity
         style={styles.caregiverButton}
-        onPress={() => router.push("/login-caregiver")}
+        onPress={() => router.push("/login")}
       >
         <Text style={styles.buttonText}>Soy Cuidador</Text>
       </TouchableOpacity>

@@ -10,11 +10,13 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { CaregiverContext } from "../../context/caregiverContext";
+import { SelectedSpeakerContext } from "../../context/selectedSpeakerContext";
 import { SpeakerContext } from "../../context/speakerContext";
 
 export default function SpeakerSelectionScreen() {
   const { getMySpeakers } = useContext(CaregiverContext);
   const { getSpeakerStats, setCurrentStats } = useContext(SpeakerContext);
+  const { setSelectedSpeaker } = useContext(SelectedSpeakerContext);
 
   const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,21 +37,8 @@ export default function SpeakerSelectionScreen() {
   };
 
   const handleSelect = async (speaker) => {
-    setLoading(true);
-    try {
-      const { success, stats } = await getSpeakerStats(speaker.id);
-      if (success) {
-        setCurrentStats(stats);
-        router.push({
-          pathname: "/caregiver/speaker-stats",
-          params: { speakerId: speaker.id, username: speaker.username },
-        });
-      }
-    } catch (error) {
-      console.error("Error al cargar stats:", error);
-    } finally {
-      setLoading(false);
-    }
+    setSelectedSpeaker({ id: speaker.id, username: speaker.username });
+    router.push("/caregiver/speaker-stats");
   };
 
   useEffect(() => {

@@ -1,2 +1,2 @@
-import CaregiverPictograms from "../../screen/caregiver/pictograms";
-export default CaregiverPictograms;
+import PictogramLibraryScreen from "../../screen/caregiver/pictogramsLibrary";
+export default PictogramLibraryScreen;

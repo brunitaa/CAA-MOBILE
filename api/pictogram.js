@@ -2,8 +2,6 @@ import api from "./axios";
 
 // Crear un pictograma
 export const createPictogramRequest = async (formData) => {
-  console.log("API: enviando pictograma...");
-  console.log(formData);
   return api.post("/pictograms/create", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

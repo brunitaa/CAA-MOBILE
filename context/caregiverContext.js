@@ -23,7 +23,6 @@ export const CaregiverProvider = ({ children }) => {
       await saveToken(jwt);
       setToken(jwt);
       setUser(res.data.user || null);
-      console.log(user);
 
       return { success: true };
     } catch (err) {
@@ -55,7 +54,6 @@ export const CaregiverProvider = ({ children }) => {
       const res = await verifyTokenRequest(storedToken);
       if (res.data.valid) {
         setUser(res.data.user);
-        console.log(user);
         setToken(storedToken);
       } else {
         await logout();

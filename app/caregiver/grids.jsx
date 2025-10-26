@@ -1,2 +1,2 @@
-import CaregiverGrids from "../../screen/caregiver/grids";
-export default CaregiverGrids;
+import GridLibraryScreen from "../../screen/grids/gridsLibrary";
+export default GridLibraryScreen;

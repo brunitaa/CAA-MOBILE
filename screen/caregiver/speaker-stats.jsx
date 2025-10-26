@@ -7,31 +7,49 @@ import {
   Text,
   View,
 } from "react-native";
+import { SelectedSpeakerContext } from "../../context/selectedSpeakerContext";
 import { SpeakerContext } from "../../context/speakerContext";
 
 const { width } = Dimensions.get("window");
 
 export default function SpeakerDashboardScreen({ route }) {
   const { stats, statsLoading, getSpeakerStats } = useContext(SpeakerContext);
+  const { selectedSpeaker, setSelectedSpeaker } = useContext(
+    SelectedSpeakerContext
+  );
+
   const [localStats, setLocalStats] = useState(null);
-  const speakerId = route?.params?.speakerId;
 
+  // Si se pasa speakerId por params, lo priorizamos
+  const routeSpeakerId = route?.params?.speakerId;
+  const currentSpeakerId = routeSpeakerId || selectedSpeaker?.id;
+
+  // Cargar stats cuando cambia el speaker
   useEffect(() => {
-    if (speakerId) {
-      getSpeakerStats(speakerId).then((res) => {
-        if (res?.success) {
-          setLocalStats(res.stats); // Guarda los datos en local
+    if (!currentSpeakerId) return;
+
+    const fetchStats = async () => {
+      const res = await getSpeakerStats(currentSpeakerId);
+      if (res?.success) {
+        setLocalStats(res.stats);
+        // Guardar como speaker seleccionado en contexto si no está ya
+        if (!selectedSpeaker || selectedSpeaker.id !== currentSpeakerId) {
+          setSelectedSpeaker(res.stats);
         }
-      });
-    }
-  }, [speakerId]);
+      }
+    };
 
-  // Si el contexto cambia, actualiza también el local
+    fetchStats();
+  }, [currentSpeakerId]);
+
+  // Actualizar localStats si cambia stats global del contexto
   useEffect(() => {
-    if (stats) setLocalStats(stats);
+    if (stats && selectedSpeaker && stats.id === selectedSpeaker.id) {
+      setLocalStats(stats);
+    }
   }, [stats]);
 
-  if (statsLoading || !localStats) {
+  if (!currentSpeakerId || statsLoading || !localStats) {
     return (
       <View style={styles.centered}>
         <Text style={styles.loadingText}>Cargando estadísticas...</Text>
@@ -58,17 +76,14 @@ export default function SpeakerDashboardScreen({ route }) {
       {/* Información general */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Información del usuario</Text>
-
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Nombre de usuario:</Text>
           <Text style={styles.infoValue}>{s.username}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Edad:</Text>
           <Text style={styles.infoValue}>{s.age} años</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Género:</Text>
           <Text style={styles.infoValue}>
@@ -84,7 +99,6 @@ export default function SpeakerDashboardScreen({ route }) {
       {/* Métricas generales */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Resumen de uso</Text>
-
         <StatItem
           label="Tableros creados"
           value={s.gridsCount}

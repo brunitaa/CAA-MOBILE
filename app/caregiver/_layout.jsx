@@ -19,7 +19,7 @@ export default function CaregiverLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="profile"
         options={{
           title: "Perfil",
           tabBarIcon: ({ color, size }) => (
@@ -37,7 +37,7 @@ export default function CaregiverLayout() {
         }}
       />
       <Tabs.Screen
-        name="boards"
+        name="grids"
         options={{
           title: "Tableros",
           tabBarIcon: ({ color, size }) => (
@@ -46,9 +46,18 @@ export default function CaregiverLayout() {
         }}
       />
       <Tabs.Screen
-        name="dashboard"
+        name="speaker-stats"
         options={{
           title: "Dashboard",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="speaker-selection"
+        options={{
+          title: "Speakers",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
