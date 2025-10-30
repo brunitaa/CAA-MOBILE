@@ -1,6 +1,7 @@
 import api from "@/api/axios";
 
 export const createGridRequest = async (formData) => {
+  console.log(formData);
   return api.post("/grids/create", formData);
 };
 

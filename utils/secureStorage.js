@@ -1,35 +1,56 @@
-// src/utils/secureStorage.js
 import * as SecureStore from "expo-secure-store";
 
-const TOKEN_KEY = "caregiverToken";
+const CAREGIVER_TOKEN_KEY = "caregiverToken";
+const SPEAKER_TOKEN_KEY = "speakerToken";
 
-// Guardar el token JWT
-export const saveToken = async (token) => {
+// Caregiver
+export const saveCaregiverToken = async (token) => {
   try {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
-    console.log("Token guardado correctamente ");
+    await SecureStore.setItemAsync(CAREGIVER_TOKEN_KEY, token);
   } catch (error) {
-    console.error("Error al guardar el token:", error);
+    console.error("Error guardando caregiver token:", error);
   }
 };
 
-// Obtener el token JWT
-export const getToken = async () => {
+export const getCaregiverToken = async () => {
   try {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
-    return token;
+    return await SecureStore.getItemAsync(CAREGIVER_TOKEN_KEY);
   } catch (error) {
-    console.error("Error al obtener el token:", error);
+    console.error("Error obteniendo caregiver token:", error);
     return null;
   }
 };
 
-// Eliminar el token JWT
-export const removeToken = async () => {
+export const removeCaregiverToken = async () => {
   try {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    console.log("Token eliminado correctamente ");
+    await SecureStore.deleteItemAsync(CAREGIVER_TOKEN_KEY);
   } catch (error) {
-    console.error("Error al eliminar el token:", error);
+    console.error("Error eliminando caregiver token:", error);
+  }
+};
+
+// Speaker
+export const saveSpeakerToken = async (token) => {
+  try {
+    await SecureStore.setItemAsync(SPEAKER_TOKEN_KEY, token);
+  } catch (error) {
+    console.error("Error guardando speaker token:", error);
+  }
+};
+
+export const getSpeakerToken = async () => {
+  try {
+    return await SecureStore.getItemAsync(SPEAKER_TOKEN_KEY);
+  } catch (error) {
+    console.error("Error obteniendo speaker token:", error);
+    return null;
+  }
+};
+
+export const removeSpeakerToken = async () => {
+  try {
+    await SecureStore.deleteItemAsync(SPEAKER_TOKEN_KEY);
+  } catch (error) {
+    console.error("Error eliminando speaker token:", error);
   }
 };

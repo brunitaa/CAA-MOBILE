@@ -9,7 +9,7 @@ export class PictogramService {
     return { Authorization: `Bearer ${this.token}` };
   }
 
-  async getAllPictograms(selectedSpeaker) {
+  async getAllPictogramsRequest(selectedSpeaker) {
     if (!selectedSpeaker || !selectedSpeaker.id) {
     } else {
     }
@@ -24,32 +24,24 @@ export class PictogramService {
     return data;
   }
 
-  async getArchivedPictograms() {
+  async getArchivedPictogramsRequest() {
     const { data } = await api.get("/pictograms/archived", {
       headers: this._getAuthHeader(),
     });
     return data;
   }
 
-  async getPictogramById(id) {
+  async getPictogramByIdRequest(id) {
     const { data } = await api.get(`/pictograms/${id}`, {
       headers: this._getAuthHeader(),
     });
     return data;
   }
 
-  async createPictogram(formData, selectedSpeaker) {
-    console.log(
-      "Creando pictograma para speaker:",
-      selectedSpeaker?.id || "global"
-    );
-
-    const { data } = await api.post(
-      "/pictograms/create",
-      {
-        ...formData,
-        speakerId: selectedSpeaker?.id || null,
-      },
+  async updatePictogramCaregiverRequest(id, formData) {
+    const { data } = await api.put(
+      `/pictograms/edit/caregiver/${id}`,
+      formData,
       {
         headers: {
           ...this._getAuthHeader(),
@@ -57,13 +49,10 @@ export class PictogramService {
         },
       }
     );
-
-    console.log("Pictograma creado:", data);
     return data;
   }
-
-  async updatePictogram(id, formData) {
-    const { data } = await api.put(`/pictograms/edit/${id}`, formData, {
+  async updatePictogramSpeakerRequest(id, formData) {
+    const { data } = await api.put(`/pictograms/edit/speaker/${id}`, formData, {
       headers: {
         ...this._getAuthHeader(),
         "Content-Type": "multipart/form-data",
@@ -72,31 +61,32 @@ export class PictogramService {
     return data;
   }
 
-  async deletePictogram(id) {
+  async deletePictogramRequest(id) {
     const { data } = await api.delete(`/pictograms/delete/${id}`, {
       headers: this._getAuthHeader(),
     });
     return data;
   }
 
-  async restorePictogram(id) {
+  async restorePictogramRequest(id) {
     const { data } = await api.patch(`/pictograms/restore/${id}`, null, {
       headers: this._getAuthHeader(),
     });
     return data;
   }
 
-  async getAllPos() {
-    const { data } = await api.get("/pictograms/dropdown/pos", {
-      headers: this._getAuthHeader(),
-    });
-    return data;
-  }
-
-  async getAllSemanticCategories() {
-    const { data } = await api.get("/pictograms/dropdown/semantic", {
+  async getAllPosRequest() {
+    const { data } = await api.get("/pos", {
       headers: this._getAuthHeader(),
     });
     return data;
   }
 }
+
+export const createPictogramRequest = async (formData) => {
+  console.log("API: enviando pictograma...");
+  console.log(formData);
+  return api.post("/pictograms/create", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

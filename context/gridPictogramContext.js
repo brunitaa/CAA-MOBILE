@@ -12,7 +12,8 @@ export const GridPictogramProvider = ({ children }) => {
   const [pictograms, setPictograms] = useState([]);
   const [gridName, setGridName] = useState("");
   const [loading, setLoading] = useState(false);
-  const BACKEND_URL = "http://10.0.2.2:4000";
+  const [errors, setErrors] = useState([]);
+  const BACKEND_URL = "http://172.20.10.3:4000";
 
   const fetchPictogramsByGrid = async (gridId) => {
     setLoading(true);
@@ -40,8 +41,9 @@ export const GridPictogramProvider = ({ children }) => {
 
       setPictograms(normalized);
     } catch (err) {
-      console.error("Error fetching pictograms:", err);
-      setPictograms([]);
+      const message = err?.message || "Error al conseguir pictogramas";
+      setErrors([message]);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -66,8 +68,9 @@ export const GridPictogramProvider = ({ children }) => {
 
       await fetchPictogramsByGrid(gridId);
     } catch (err) {
-      console.error("Error agregando pictogramas:", err);
-      throw err;
+      const message = err?.message || "Error al agregando pictograma";
+      setErrors([message]);
+      throw new Error(message);
     }
   };
 
@@ -82,8 +85,10 @@ export const GridPictogramProvider = ({ children }) => {
       await Promise.all(deletePromises);
       await fetchPictogramsByGrid(gridId);
     } catch (err) {
-      console.error("Error eliminando pictogramas:", err);
-      throw err;
+      const message =
+        err?.message || "Error al eliminando pictograma del tablero";
+      setErrors([message]);
+      throw new Error(message);
     }
   };
 

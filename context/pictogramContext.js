@@ -1,23 +1,29 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { PictogramService } from "../services/pictogramService";
+import {
+  PictogramService,
+  createPictogramRequest,
+} from "../services/pictogramService";
 import { CaregiverContext } from "./caregiverContext";
+import { SelectedSpeakerContext } from "./selectedSpeakerContext";
 
 export const PictogramContext = createContext();
 
 export const PictogramProvider = ({ children }) => {
   const { token } = useContext(CaregiverContext);
+  const { selectedSpeaker } = useContext(SelectedSpeakerContext);
+
   const [pictograms, setPictograms] = useState([]);
   const [archivedPictograms, setArchivedPictograms] = useState([]);
   const [posList, setPosList] = useState([]);
-  const [semanticCategories, setSemanticCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState([]);
+
+  const BACKEND_URL = "http://172.20.10.3:4000";
 
   const pictogramService = new PictogramService(token);
-  const BACKEND_URL = "http://10.0.2.2:4000";
 
   const attachImageUrl = (pictogram) => {
     const primaryPos = pictogram.pictogramPos?.find((p) => p.isPrimary);
-
     return {
       ...pictogram,
       imageUrl: pictogram.image?.url
@@ -27,53 +33,47 @@ export const PictogramProvider = ({ children }) => {
     };
   };
 
-  const loadPictograms = async (selectedSpeaker) => {
-    if (!token) return;
+  const loadPictograms = async () => {
+    if (!token || !selectedSpeaker) return;
 
     try {
       setLoading(true);
 
-      // Cargar pictogramas activos
-      const all = await pictogramService.getAllPictograms(selectedSpeaker);
+      // Pictogramas activos
+      const all = await pictogramService.getAllPictogramsRequest(
+        selectedSpeaker
+      );
       setPictograms(all.map(attachImageUrl));
 
-      // Cargar pictogramas archivados
-      const archived = await pictogramService.getArchivedPictograms(
+      // Pictogramas archivados
+      const archived = await pictogramService.getArchivedPictogramsRequest(
         selectedSpeaker
       );
       setArchivedPictograms(archived.map(attachImageUrl));
     } catch (err) {
-      console.error("Error cargando pictogramas:", err.message);
+      console.error("Error cargando pictogramas:", err.message || err);
     } finally {
       setLoading(false);
     }
   };
 
   const loadDropdowns = async () => {
-    if (!token) return;
-    try {
-      const pos = await pictogramService.getAllPos();
-      setPosList(pos);
+    if (!token) {
+      console.log("[PictogramProvider] No hay token, no se cargan POS");
+      return;
+    }
 
-      const categories = await pictogramService.getAllSemanticCategories();
-      setSemanticCategories(categories);
+    try {
+      console.log("[PictogramProvider] Cargando POS...");
+      const pos = await pictogramService.getAllPosRequest();
+      console.log("[PictogramProvider] POS recibidos:", pos);
+      setPosList(pos);
     } catch (err) {
-      console.error("Error cargando dropdowns:", err.message);
+      console.error("Error cargando POS:", err.message || err);
     }
   };
 
   const createPictogram = async (formData) => {
-    try {
-      const pictogram = await pictogramService.createPictogram(formData);
-      const serialized = attachImageUrl(pictogram);
-      setPictograms((prev) => [serialized, ...prev]);
-      return { success: true, pictogram: serialized };
-    } catch (err) {
-      return { success: false, message: err.message };
-    }
-  };
-
-  const updatePictogram = async (id, formData) => {
     try {
       const logData = {};
       formData.forEach((value, key) => {
@@ -83,50 +83,99 @@ export const PictogramProvider = ({ children }) => {
           logData[key] = value;
         }
       });
+      console.log("Enviando pictograma al backend:", logData);
 
-      const res = await pictogramService.updatePictogram(id, formData);
+      const res = await createPictogramRequest(formData);
 
-      const updatedWithUrl = attachImageUrl(res);
-      setPictograms((prev) =>
-        prev.map((p) => (p.id === id ? updatedWithUrl : p))
+      const pictogramWithUrl = attachImageUrl(res.data, BACKEND_URL);
+      setPictograms((prev) => [...prev, pictogramWithUrl]);
+
+      return pictogramWithUrl;
+    } catch (err) {
+      console.error("Error creando pictograma:", err);
+      setErrors([err.response?.data?.message || "Error al crear pictograma"]);
+      throw err;
+    }
+  };
+
+  const updatePictogramCaregiver = async (id, data) => {
+    try {
+      const posIdNumber = Number(data.posId);
+      const speakerIdNumber = Number(data.speakerId); // ✅ convertir a número
+
+      if (isNaN(posIdNumber))
+        throw new Error("Selecciona una categoría gramatical válida");
+      if (isNaN(speakerIdNumber)) throw new Error("ID de speaker inválido");
+
+      const form = new FormData();
+      form.append("name", data.name);
+      form.append("posId", posIdNumber);
+      form.append("speakerId", speakerIdNumber); // ✅ agregamos speakerId
+
+      console.log("FormData enviado:", form);
+
+      if (data.imageFile) {
+        form.append("imageFile", {
+          uri: data.imageFile.uri,
+          type: data.imageFile.type || "image/jpeg",
+          name: data.imageFile.name || data.imageFile.uri.split("/").pop(),
+        });
+      }
+
+      const res = await pictogramService.updatePictogramCaregiverRequest(
+        id,
+        form
       );
 
-      return updatedWithUrl;
+      const updated = attachImageUrl(res);
+
+      setPictograms((prev) => prev.map((p) => (p.id === id ? updated : p)));
+
+      return updated;
     } catch (err) {
-      console.error("Error updating pictogram:", err);
-      // Lanzamos el error para que el componente lo capture
-      throw err;
+      const message = err?.message || "Error al editar pictograma";
+      setErrors([message]);
+      throw new Error(message);
     }
   };
 
   const deletePictogram = async (id) => {
     try {
-      await pictogramService.deletePictogram(id);
+      await pictogramService.deletePictogramRequest(id);
       setPictograms((prev) => prev.filter((p) => p.id !== id));
       return { success: true };
     } catch (err) {
-      return { success: false, message: err.message };
+      const message = err?.message || "Error al eliminar pictograma";
+      setErrors([message]);
+      throw new Error(message);
     }
   };
 
   const restorePictogram = async (id) => {
     try {
-      const restored = await pictogramService.restorePictogram(id);
+      const restored = await pictogramService.restorePictogramRequest(id);
       const serialized = attachImageUrl(restored);
       setArchivedPictograms((prev) => prev.filter((p) => p.id !== id));
       setPictograms((prev) => [serialized, ...prev]);
       return { success: true, pictogram: serialized };
     } catch (err) {
-      return { success: false, message: err.message };
+      const message = err?.message || "Error al restaurar pictograma";
+      setErrors([message]);
+      throw new Error(message);
     }
   };
 
   useEffect(() => {
-    if (token) {
+    console.log(
+      "[PictogramProvider] useEffect token/selectedSpeaker:",
+      token,
+      selectedSpeaker
+    );
+    if (token && selectedSpeaker) {
       loadPictograms();
       loadDropdowns();
     }
-  }, [token]);
+  }, [token, selectedSpeaker]);
 
   return (
     <PictogramContext.Provider
@@ -134,11 +183,11 @@ export const PictogramProvider = ({ children }) => {
         pictograms,
         archivedPictograms,
         posList,
-        semanticCategories,
         loading,
+        errors,
         loadPictograms,
         createPictogram,
-        updatePictogram,
+        updatePictogramCaregiver,
         deletePictogram,
         restorePictogram,
       }}

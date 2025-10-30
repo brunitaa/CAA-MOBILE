@@ -63,7 +63,7 @@ export const SpeakerProvider = ({ children }) => {
         statsLoading,
         getSpeakerStats,
         currentStats,
-        setCurrentStats, // <- ✅ ahora disponible en otros componentes
+        setCurrentStats,
       }}
     >
       {children}

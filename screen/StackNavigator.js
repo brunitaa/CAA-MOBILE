@@ -13,7 +13,7 @@ export default function StackNavigator() {
     <Stack.Navigator
       initialRouteName="Welcome"
       screenOptions={{
-        headerShown: false, // quitar header por defecto
+        headerShown: false,
       }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />

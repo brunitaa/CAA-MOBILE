@@ -38,17 +38,12 @@ export const GridProvider = ({ children }) => {
 
       const archived = await getArchivedGridsRequest(selectedSpeaker);
       const archivedList = archived?.data ?? [];
-      console.log("📦 Grids archivados cargados:", archivedList.length);
+      console.log("Grids archivados cargados:", archivedList.length);
 
       setArchivedGrids(Array.isArray(archivedList) ? archivedList : []);
     } catch (err) {
-      console.error(
-        "❌ Error cargando grids:",
-        err.message,
-        err.response?.data
-      );
+      console.error("Error cargando grids:", err.message, err.response?.data);
       setErrors([err.response?.data?.message || "Error al cargar grids"]);
-      // prevenir error al limpiar
       setGrids([]);
       setArchivedGrids([]);
     } finally {

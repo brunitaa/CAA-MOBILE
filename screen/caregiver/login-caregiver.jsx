@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons"; // icono ojo
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
 import {
@@ -11,22 +12,53 @@ import {
   View,
 } from "react-native";
 import { CaregiverContext } from "../../context/caregiverContext";
+import { getCaregiverToken } from "../../utils/tokenStorage";
 
 export default function LoginCaregiverScreen() {
   const router = useRouter();
-  const { login, loading: contextLoading, user } = useContext(CaregiverContext);
+  const {
+    login,
+    logout,
+    loading: contextLoading,
+    userCaregiver,
+    validateSession,
+  } = useContext(CaregiverContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Si el usuario ya está logueado, redirigir automáticamente
+  const [isChecking, setIsChecking] = useState(false);
+
   useEffect(() => {
-    if (user) {
-      router.replace("/caregiver/speaker-selection");
-    }
-  }, [user]);
+    const checkSession = async () => {
+      if (isChecking) return;
+      setIsChecking(true);
+
+      try {
+        const token = await getCaregiverToken();
+        if (!token) {
+          setIsChecking(false);
+          return;
+        }
+
+        const res = await validateSession();
+
+        if (res.valid && res.user?.role === "caregiver") {
+          router.replace("/caregiver/speaker-selection");
+        } else {
+          setIsChecking(false);
+        }
+      } catch (err) {
+        console.error("Error validating session:", err);
+        setIsChecking(false);
+      }
+    };
+
+    checkSession();
+  }, []);
 
   const handleLogin = async () => {
     setError("");
@@ -38,17 +70,15 @@ export default function LoginCaregiverScreen() {
     setLoading(true);
     try {
       const res = await login(email, password);
-
       if (!res.success) {
         setError(res.message);
         return;
       }
 
-      // Navegación inmediata tras login exitoso
       router.replace("/caregiver/speaker-selection");
     } catch (err) {
-      setError("Error al iniciar sesión. Intenta nuevamente.");
       console.error("Login error:", err);
+      setError("Error al iniciar sesión. Intenta nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -58,6 +88,30 @@ export default function LoginCaregiverScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4f46e5" />
+      </View>
+    );
+  }
+
+  if (userCaregiver) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Ya iniciaste sesión</Text>
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={() => router.replace("/caregiver/speaker-selection")}
+        >
+          <Text style={styles.buttonText}>Continuar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={async () => {
+            await logout();
+            router.replace("/");
+          }}
+        >
+          <Text style={styles.buttonText}>Cerrar sesión</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -72,20 +126,33 @@ export default function LoginCaregiverScreen() {
         <Text style={styles.subtitle}>Ingresa tu cuenta para continuar</Text>
 
         <TextInput
-          placeholder="Email"
+          placeholder="Correo electrónico"
           value={email}
           onChangeText={setEmail}
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TextInput
-          placeholder="Contraseña"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-        />
+
+        <View style={styles.inputPasswordWrapper}>
+          <TextInput
+            placeholder="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            style={styles.inputPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -166,6 +233,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "#fafafa",
   },
+  inputPasswordWrapper: {
+    position: "relative",
+    width: "100%",
+    marginBottom: 16,
+  },
+  inputPassword: {
+    width: "100%",
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#fafafa",
+    paddingRight: 40, // espacio para el ojo
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -12 }],
+  },
   error: { color: "#ff4d4f", marginBottom: 12, textAlign: "center" },
   loginButton: {
     backgroundColor: "#4f46e5",
@@ -195,4 +283,19 @@ const styles = StyleSheet.create({
   registerText: { color: "#666", marginRight: 8 },
   registerButton: {},
   registerButtonText: { color: "#4f46e5", fontWeight: "bold" },
+  continueButton: {
+    backgroundColor: "#4f46e5",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  logoutButton: {
+    backgroundColor: "#ff4d4f",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
 });

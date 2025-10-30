@@ -5,8 +5,8 @@ export const registerCaregiverRequest = async (user) =>
   api.post("/register-caregiver", user);
 
 // Login caregiver
-export const loginCaregiverRequest = async (user) =>
-  api.post("/auth/caregiver/login", user);
+export const loginCaregiverRequest = async (userCaregiver) =>
+  api.post("/auth/caregiver/login", userCaregiver);
 
 // Verificar OTP
 export const verifyOTPRequest = async (user) =>
@@ -27,7 +27,15 @@ export const changePasswordRequest = async (user) =>
 export const getProfileRequest = async () => api.get("/auth/profile");
 
 // Validar token
-export const verifyTokenRequest = async () => api.get("/auth/validate");
+export const validateTokenRequest = async () => {
+  try {
+    const res = await api.get("/auth/validate");
+    return res.data;
+  } catch (error) {
+    console.error("Error validando token:", error.response?.data || error);
+    return { valid: false };
+  }
+};
 
 // Logout
 export const logoutRequest = async () => api.post("/auth/logout");

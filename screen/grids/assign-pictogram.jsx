@@ -9,6 +9,8 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import PictogramItem from "../../components/pictogram";
 import { useGridPictogram } from "../../context/gridPictogramContext";
 import { PictogramContext } from "../../context/pictogramContext";
@@ -32,9 +34,15 @@ export default function AssignPictogramsMobile() {
     useContext(PictogramContext);
 
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [numColumns, setNumColumns] = useState(3);
   const [selected, setSelected] = useState([]);
   const [showAvailable, setShowAvailable] = useState(false);
+
+  // Ajustar columnas según orientación
+  useEffect(() => {
+    setNumColumns(width > height ? 5 : 3);
+  }, [width, height]);
 
   // Cargar pictogramas al cambiar de grid
   useEffect(() => {
@@ -49,7 +57,6 @@ export default function AssignPictogramsMobile() {
         clearPictograms();
 
         await fetchPictogramsByGrid(selectedGrid.id);
-
         await loadPictograms(selectedSpeaker);
       } catch (err) {
         console.error(err);
@@ -59,19 +66,12 @@ export default function AssignPictogramsMobile() {
     loadData();
   }, [selectedGrid]);
 
-  useEffect(() => {
-    setNumColumns(width > height ? 5 : 3);
-  }, [width, height]);
-
   const ITEM_SIZE = (width - 32 - (numColumns - 1) * 12) / numColumns;
   const assignedIds = allGridPictograms?.map((p) => p.id) || [];
-  console.log("===== Pictogramas del tablero (assigned) =====", assignedIds);
 
   const availablePictograms = useMemo(() => {
     const combined = [...(pictogramsGlobales || []), ...(allPictograms || [])];
-    const filtered = combined.filter((p) => !assignedIds.includes(p.id));
-    console.log("===== Pictogramas disponibles para agregar =====", filtered);
-    return filtered;
+    return combined.filter((p) => !assignedIds.includes(p.id));
   }, [allPictograms, pictogramsGlobales, assignedIds]);
 
   const toggleSelect = (id) =>
@@ -89,7 +89,7 @@ export default function AssignPictogramsMobile() {
         selectedGrid.speakerId
       );
       setShowAvailable(false);
-      setSelected([]); // limpiar selección
+      setSelected([]);
     } catch (err) {
       console.error("Error al agregar pictogramas:", err);
       alert("Error al agregar pictogramas");
@@ -115,7 +115,7 @@ export default function AssignPictogramsMobile() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 16 }]}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -143,7 +143,20 @@ export default function AssignPictogramsMobile() {
           }}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => handleRemovePictogram(item.id)}>
-              <PictogramItem pictogram={item} size={ITEM_SIZE} selected />
+              <PictogramItem
+                pictogram={item}
+                size={ITEM_SIZE}
+                selected
+                style={{
+                  borderColor: "#EF4444",
+                  borderWidth: 2,
+                  borderRadius: 8,
+                  shadowColor: "#EF4444",
+                  shadowOpacity: 0.3,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowRadius: 4,
+                }}
+              />
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingBottom: 16 }}
@@ -174,19 +187,27 @@ export default function AssignPictogramsMobile() {
                 justifyContent: "space-between",
                 marginBottom: 12,
               }}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => toggleSelect(item.id)}>
-                  <PictogramItem
-                    pictogram={item}
-                    size={ITEM_SIZE}
-                    selected={selected.includes(item.id)}
-                    style={{
-                      borderColor: "#34D399",
-                      borderWidth: selected.includes(item.id) ? 2 : 0,
-                    }}
-                  />
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const isSelected = selected.includes(item.id);
+                return (
+                  <TouchableOpacity onPress={() => toggleSelect(item.id)}>
+                    <PictogramItem
+                      pictogram={item}
+                      size={ITEM_SIZE}
+                      selected={isSelected}
+                      style={{
+                        borderColor: isSelected ? "#34D399" : "transparent",
+                        borderWidth: isSelected ? 3 : 1,
+                        borderRadius: 8,
+                        shadowColor: isSelected ? "#34D399" : "#000",
+                        shadowOpacity: isSelected ? 0.3 : 0,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowRadius: 4,
+                      }}
+                    />
+                  </TouchableOpacity>
+                );
+              }}
               contentContainerStyle={{ paddingBottom: 16 }}
             />
           )}

@@ -1,22 +1,21 @@
 import api from "../api/axios";
 
-// Obtener mis speakers
-export const getSpeakersRequest = (token) => {
+export const getSpeakersRequest = (caregiverToken) => {
   return api.get("/speaker/my-speakers", {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${caregiverToken}` },
   });
 };
-export const getSpeakerStatsRequest = (speakerId, token) => {
+export const getSpeakerStatsRequest = (speakerId, caregiverToken) => {
   return api.get(`/stats/speakers/${speakerId}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${caregiverToken}` },
   });
 };
 
-export const createSpeakerRequest = async (speakerData, token) => {
+export const createSpeakerRequest = async (speakerData, caregivertoken) => {
   try {
     const res = await api.post("/speaker/create", speakerData, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${caregivertoken}`,
       },
     });
     return res.data;
@@ -27,4 +26,25 @@ export const createSpeakerRequest = async (speakerData, token) => {
     );
     throw error;
   }
+};
+
+export const selectSpeakerRequest = async (
+  caregiverId,
+  speakerId,
+  caregiverToken
+) => {
+  console.log("Payload enviado al backend!:", { caregiverId, speakerId });
+
+  const res = await api.post(
+    "/speaker/select",
+    { caregiverId: Number(caregiverId), speakerId: Number(speakerId) },
+    {
+      headers: {
+        Authorization: `Bearer ${caregiverToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return res.data;
 };

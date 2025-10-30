@@ -51,9 +51,17 @@ export default function CreateGridScreen() {
         speakerId: selectedSpeaker.id,
       };
 
+      // 🔹 Llamada correcta al contexto para crear el grid
+      const createdGrid = await createGrid(payload);
+      console.log("Grid creado:", createdGrid);
+
       Alert.alert("Éxito", "Tablero creado correctamente.");
+
+      // Limpiar campos
       setName("");
       setDescription("");
+
+      // Navegar a la lista de grids
       router.push(`/caregiver/grids`);
     } catch (err) {
       console.error("Error creando grid:", err);
@@ -104,7 +112,11 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: "center",
   },
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: {
     fontSize: 20,
     fontWeight: "bold",

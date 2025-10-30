@@ -1,8 +1,6 @@
 import api from "@/api/axios";
 
-// Asignar pictogramas a un grid
 export const addPictogramsToGridRequest = async (payload) => {
-  // payload debe contener: { gridId, pictogramIds, speakerId }
   const response = await api.post(
     `/gridPictogram/assign-pictogram/${payload.gridId}`,
     payload

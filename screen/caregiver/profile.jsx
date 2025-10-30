@@ -1,17 +1,24 @@
+import { useRouter } from "expo-router";
 import { useContext } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { CaregiverContext } from "../../context/caregiverContext";
 
 export default function CaregiverProfile() {
-  const { caregiver, logout } = useContext(CaregiverContext);
+  const { userCaregiver, logout } = useContext(CaregiverContext);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Perfil del Cuidador</Text>
-      <Text>Nombre: {caregiver?.username || "No disponible"}</Text>
-      <Text>Email: {caregiver?.email || "No disponible"}</Text>
+      <Text>Nombre: {userCaregiver?.username || "No disponible"}</Text>
+      <Text>Email: {userCaregiver?.email || "No disponible"}</Text>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </View>

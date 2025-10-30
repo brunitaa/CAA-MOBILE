@@ -11,24 +11,40 @@ import {
 } from "react-native";
 import { CaregiverContext } from "../../context/caregiverContext";
 import { SelectedSpeakerContext } from "../../context/selectedSpeakerContext";
-import { SpeakerContext } from "../../context/speakerContext";
+import { getCaregiverToken } from "../../utils/tokenStorage";
 
 export default function SpeakerSelectionScreen() {
-  const { getMySpeakers } = useContext(CaregiverContext);
-  const { getSpeakerStats, setCurrentStats } = useContext(SpeakerContext);
-  const { setSelectedSpeaker } = useContext(SelectedSpeakerContext);
-
-  const [speakers, setSpeakers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const isHorizontal = width > height;
 
+  const { userCaregiver, token, getMySpeakers, validateSession } =
+    useContext(CaregiverContext);
+  const { setSelectedSpeaker } = useContext(SelectedSpeakerContext);
+
+  const [speakers, setSpeakers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Función para obtener speakers
   const fetchSpeakers = async () => {
     setLoading(true);
     try {
+      let currentToken = token;
+
+      // Si no hay token en contexto, obtenerlo del storage
+      if (!currentToken) {
+        currentToken = await getCaregiverToken();
+        if (!currentToken) {
+          // Token no válido, forzar validar sesión
+          await validateSession();
+          currentToken = token; // tomar token actualizado
+        }
+      }
+
+      if (!currentToken) throw new Error("Token no disponible");
+
       const res = await getMySpeakers();
-      if (res.success) setSpeakers(res.speakers);
+      if (res.success) setSpeakers(res.speakers || []);
     } catch (error) {
       console.error("Error al obtener speakers:", error);
     } finally {
@@ -36,13 +52,21 @@ export default function SpeakerSelectionScreen() {
     }
   };
 
-  const handleSelect = async (speaker) => {
+  // Selección de speaker
+  const handleSelect = (speaker) => {
     setSelectedSpeaker({ id: speaker.id, username: speaker.username });
     router.push("/caregiver/speaker-stats");
   };
 
   useEffect(() => {
-    fetchSpeakers();
+    const init = async () => {
+      // Validar sesión si no hay usuario
+      if (!userCaregiver) {
+        await validateSession();
+      }
+      await fetchSpeakers();
+    };
+    init();
   }, []);
 
   if (loading)

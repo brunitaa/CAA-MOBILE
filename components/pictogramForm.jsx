@@ -1,3 +1,4 @@
+import { SelectedSpeakerContext } from "@/context/selectedSpeakerContext";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import React, { useContext, useEffect, useState } from "react";
@@ -19,25 +20,27 @@ export default function PictogramForm({
   isEdit = false,
   onSuccess,
 }) {
-  const { createPictogram, updatePictogram, posList, semanticCategories } =
+  const { createPictogram, updatePictogramCaregiver, posList } =
     useContext(PictogramContext);
+  const { selectedSpeaker } = useContext(SelectedSpeakerContext);
+  console.log(selectedSpeaker);
+  const currentSpeakerId = selectedSpeaker?.id;
+  console.log(currentSpeakerId);
 
   const [formData, setFormData] = useState({
     name: "",
     posId: null,
-    semanticCategoryId: null,
     image: null,
   });
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Cargar datos si es edición
   useEffect(() => {
     if (isEdit && pictogram) {
       setFormData({
         name: pictogram.name || "",
         posId: pictogram.pictogramPos?.find((p) => p.isPrimary)?.posId || null,
-        semanticCategoryId: pictogram.semanticCategoryId || null,
         image: pictogram.imageUrl ? { uri: pictogram.imageUrl } : null,
+        speakerId: currentSpeakerId,
       });
     }
   }, [isEdit, pictogram]);
@@ -77,27 +80,28 @@ export default function PictogramForm({
       return Alert.alert("Error", "El nombre del pictograma es obligatorio.");
     if (!formData.posId)
       return Alert.alert("Error", "Selecciona una categoría gramatical.");
-    if (!formData.semanticCategoryId)
-      return Alert.alert("Error", "Selecciona una categoría semántica.");
 
     setLoading(true);
     try {
-      const form = new FormData();
-      form.append("name", formData.name);
-      form.append("posId", formData.posId);
-      form.append("semanticCategoryId", formData.semanticCategoryId);
+      // Incluimos speakerId siempre
+      const data = {
+        name: formData.name,
+        posId: formData.posId,
+        speakerId: currentSpeakerId, // ✅ agregar speakerId
+      };
 
+      // Agregar imagen solo si es nueva
       if (formData.image && !formData.image.uri.startsWith("http")) {
-        form.append("imageFile", {
-          uri: formData.image.uri,
-          type: "image/jpeg",
-          name: formData.image.uri.split("/").pop(),
-        });
+        data.imageFile = formData.image;
       }
 
+      // 🔹 Mostrar en consola lo que se enviará
+      console.log("Datos a enviar al backend:", data);
+      if (isEdit) console.log("ID del pictograma a editar:", pictogram.id);
+
       const res = isEdit
-        ? await updatePictogram(pictogram.id, form)
-        : await createPictogram(form);
+        ? await updatePictogramCaregiver(pictogram.id, data)
+        : await createPictogram(data);
 
       Alert.alert(
         "Éxito",
@@ -106,7 +110,7 @@ export default function PictogramForm({
       );
     } catch (err) {
       console.error("Error al guardar pictograma:", err);
-      Alert.alert("Error", "Ocurrió un error al guardar el pictograma.");
+      Alert.alert("Error", err.message || "Error al guardar pictograma");
     } finally {
       setLoading(false);
     }
@@ -149,7 +153,7 @@ export default function PictogramForm({
         </View>
       )}
 
-      {/* Categorías */}
+      {/* Categoría gramatical */}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={formData.posId}
@@ -159,19 +163,6 @@ export default function PictogramForm({
           <Picker.Item label="Selecciona categoría gramatical" value={null} />
           {posList.map((pos) => (
             <Picker.Item key={pos.id} label={pos.name} value={pos.id} />
-          ))}
-        </Picker>
-      </View>
-
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={formData.semanticCategoryId}
-          onValueChange={(val) => handleChange("semanticCategoryId", val)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Selecciona categoría semántica" value={null} />
-          {semanticCategories.map((cat) => (
-            <Picker.Item key={cat.id} label={cat.name} value={cat.id} />
           ))}
         </Picker>
       </View>

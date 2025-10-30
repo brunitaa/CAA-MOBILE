@@ -1,4 +1,3 @@
-import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
@@ -14,23 +13,30 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { CaregiverContext } from "../../context/caregiverContext";
+import DropDownPicker from "react-native-dropdown-picker";
 import { PictogramContext } from "../../context/pictogramContext";
 import { SelectedSpeakerContext } from "../../context/selectedSpeakerContext";
 
-export default function CreatePictogramScreen({ navigation }) {
-  const { createPictogram, posList, semanticCategories } =
-    useContext(PictogramContext);
-  const { user } = useContext(CaregiverContext);
-  const { selectedSpeaker } = useContext(SelectedSpeakerContext);
-  const { width } = useWindowDimensions();
+export default function CreatePictogramScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  const {
+    createPictogram,
+    posList,
+    loadDropdowns,
+    loading: contextLoading,
+  } = useContext(PictogramContext);
+  const { selectedSpeaker } = useContext(SelectedSpeakerContext);
 
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Dropdown state
+  const [openDropdown, setOpenDropdown] = useState(false);
   const [selectedPos, setSelectedPos] = useState(null);
-  const [selectedSemantic, setSelectedSemantic] = useState(null);
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     if (!selectedSpeaker) {
@@ -40,6 +46,20 @@ export default function CreatePictogramScreen({ navigation }) {
     }
   }, [selectedSpeaker]);
 
+  useEffect(() => {
+    if (posList.length === 0) {
+      loadDropdowns();
+    } else {
+      setItems(
+        posList.map((pos) => ({
+          label: pos.name,
+          value: pos.id.toString(),
+        }))
+      );
+    }
+  }, [posList]);
+
+  // Seleccionar imagen
   const pickImageFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -68,56 +88,51 @@ export default function CreatePictogramScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim()) return Alert.alert("Error", "Debes ingresar un nombre.");
-    if (!image)
-      return Alert.alert("Error", "Debes seleccionar o tomar una imagen.");
-    if (!selectedPos)
-      return Alert.alert(
-        "Error",
-        "Debes seleccionar una categoría gramatical."
-      );
-    if (!selectedSemantic)
-      return Alert.alert("Error", "Debes seleccionar una categoría semántica.");
-    if (!selectedSpeaker || !selectedSpeaker.id)
-      return Alert.alert("Error", "No se ha asignado un usuario speaker.");
+    if (!name.trim() || !image || !selectedPos || !selectedSpeaker?.id) {
+      Alert.alert("Error", "Todos los campos son obligatorios");
+      return;
+    }
 
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("name", name);
-      formData.append("targetUserId", selectedSpeaker.id);
-      formData.append("posId", selectedPos);
-      formData.append("semanticCategoryId", selectedSemantic);
+
+      formData.append("name", name.trim());
+      formData.append("speakerId", selectedSpeaker.id.toString());
+      formData.append("posId", selectedPos.toString());
       formData.append("imageFile", {
         uri: image.uri,
-        type: "image/jpeg",
         name: image.uri.split("/").pop(),
+        type: image.uri.endsWith(".png") ? "image/png" : "image/jpeg",
       });
 
-      console.log("FormData entries:");
+      console.log("FormData listo para enviar:");
       for (let pair of formData.entries()) {
         console.log(pair[0], pair[1]);
       }
 
-      const response = await createPictogram(formData);
+      const res = await createPictogram(formData);
 
-      console.log("Response from createPictogram:", response);
-
-      if (response.success) {
-        Alert.alert("Éxito", "Pictograma creado correctamente.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
-      } else {
-        Alert.alert("Error", response.message || "Ocurrió un error.");
-      }
+      Alert.alert("Éxito", "Pictograma creado correctamente", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } catch (err) {
       console.error("Error al crear pictograma:", err);
-      Alert.alert("Error", "Ocurrió un error inesperado.");
+      Alert.alert("Error", err.message || "Ocurrió un error inesperado.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (contextLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={{ marginTop: 8 }}>Cargando categorías...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -177,33 +192,23 @@ export default function CreatePictogramScreen({ navigation }) {
           </View>
         )}
 
-        {/* POS Picker */}
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedPos}
-            onValueChange={(val) => setSelectedPos(val)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecciona categoría gramatical" value={null} />
-            {posList.map((pos) => (
-              <Picker.Item key={pos.id} label={pos.name} value={pos.id} />
-            ))}
-          </Picker>
-        </View>
-
-        {/* Semantic Picker */}
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedSemantic}
-            onValueChange={(val) => setSelectedSemantic(val)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecciona categoría semántica" value={null} />
-            {semanticCategories.map((cat) => (
-              <Picker.Item key={cat.id} label={cat.name} value={cat.id} />
-            ))}
-          </Picker>
-        </View>
+        {/* POS Dropdown */}
+        <DropDownPicker
+          open={openDropdown}
+          value={selectedPos}
+          items={items}
+          setOpen={setOpenDropdown}
+          setValue={setSelectedPos}
+          setItems={setItems}
+          placeholder="Selecciona categoría gramatical"
+          containerStyle={{ marginBottom: 16 }}
+          style={{ backgroundColor: "white", borderColor: "#CBD5E1" }}
+          dropDownContainerStyle={{
+            backgroundColor: "white",
+            borderColor: "#CBD5E1",
+          }}
+          zIndex={1000}
+        />
 
         {/* Submit */}
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
@@ -220,6 +225,7 @@ export default function CreatePictogramScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#E0F2FE" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -264,18 +270,7 @@ const styles = StyleSheet.create({
   },
   imagePickerText: { color: "#94A3B8", textAlign: "center" },
   imagePreview: { width: "100%", height: "100%", borderRadius: 12 },
-  previewContainer: {
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  pickerContainer: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    marginBottom: 16,
-  },
-  picker: { height: 50 },
+  previewContainer: { marginBottom: 16, alignItems: "center" },
   submitButton: {
     backgroundColor: "#2563EB",
     paddingVertical: 14,
